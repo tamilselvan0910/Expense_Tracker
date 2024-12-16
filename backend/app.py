@@ -101,6 +101,58 @@ def get_expenses():
 
     return jsonify({"expenses": result})
 
+# Endpoint to update an expense
+@app.route('/update-expense/<int:id>', methods=['PUT'])
+def update_expense(id):
+    data = request.get_json()
+    amount = data.get('amount')
+    date = data.get('date')
+    category = data.get('category')
+    description = data.get('description')
+
+    try:
+        cursor.execute(
+            "UPDATE expenses SET amount=%s, date=%s, category=%s, description=%s WHERE id=%s",
+            (amount, date, category, description, id)
+        )
+        db.commit()
+
+        # Check if any rows were affected (i.e., the expense exists)
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Expense not found"}), 404
+
+        # Fetch the updated expense
+        cursor.execute("SELECT * FROM expenses WHERE id = %s", (id,))
+        expense = cursor.fetchone()
+
+        return jsonify({
+            "message": "Expense updated successfully!",
+            "expense": {
+                "id": expense[0],
+                "amount": expense[1],
+                "date": expense[2],
+                "category": expense[3],
+                "description": expense[4]
+            }
+        })
+    except Exception as e:
+        return jsonify({"message": f"Error updating expense: {str(e)}"}), 400
+
+# Endpoint to delete an expense
+@app.route('/delete-expense/<int:id>', methods=['DELETE'])
+def delete_expense(id):
+    try:
+        cursor.execute("DELETE FROM expenses WHERE id = %s", (id,))
+        db.commit()
+
+        # Check if any rows were affected (i.e., the expense exists)
+        if cursor.rowcount == 0:
+            return jsonify({"message": "Expense not found"}), 404
+
+        return jsonify({"message": "Expense deleted successfully!"})
+    except Exception as e:
+        return jsonify({"message": f"Error deleting expense: {str(e)}"}), 400
+
 # Endpoint to get the expense summary
 @app.route('/get-expense-summary', methods=['GET'])
 def get_expense_summary():
